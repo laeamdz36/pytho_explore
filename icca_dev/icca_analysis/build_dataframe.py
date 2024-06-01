@@ -118,7 +118,9 @@ def count_by_date(df):
         df_dates.append(df_dates_aux)
     print(f"Total lenf of dates_aux {len(df_dates)}")
     
+    # Iteration over all lines in master dataframe
     for line in lines:
+        # iteration on every unique date in master dataframe
         for df_date in df_dates:
             df_by_day = df_date[df_date["special_comments"] == line]
             df_by_day = df_by_day.resample("5min").count().loc[:,"special_comments"].rename(f"{line}")
