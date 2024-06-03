@@ -33,8 +33,12 @@ def get_dataframe(file_path : str) -> pd.DataFrame:
         total_count(df)
         unique_registers(df)
         # -----------------------Dataframe set datetime index
-        df_count = count_by_date(df)
-        print(df_count) # print dataframe dairy total count by day
+        # df_count = count_by_date(df)
+        # print(df_count) # print dataframe dairy total count by day
+        # ----------------------- Print total count by day
+        report_by_day(df)
+        report_by_minute(df )
+
         # Limpie consola
         # os.system("cls")
 
@@ -95,8 +99,57 @@ def unique_registers(df):
         registers = len(df[df['special_comments'] == line]['serial_number'].unique())
         print(f"{line} - {registers}")
 
-@decorators.print_header("Total por fecha")
-def count_by_date(df):
+@decorators.print_header("Total by date")
+def report_by_day(df):
+    """Perform a report to get a total count of registers by date"""
+    df = set_index_datetime(df) # set column datetime as index and drop it
+    lines = get_lines(df) # get unique lines cointained in the dataframe
+    # get dates contained in the index
+    
+    df_list = [] # auxiliar list to storage dataframes by day
+    for line in lines:
+        df_aux = df[df["special_comments"] == line] # filtrar por linea
+        # resample by day, total count and get only the total by day (count of registers)
+        df_aux = df_aux.resample("D").count().loc[:,"special_comments"].rename(f"{line}")
+        df_aux.index.name = "Date"
+        df_list.append(df_aux)
+    # concatenate all dataframes inside df list from result of all line iterations
+    df_result = pd.concat(df_list,axis=1)
+    # print result for resampled dataframe for in course iteration line
+    
+    print(df_result)
+
+def report_by_minute(df):
+    """ Report of every day by every 5 minutes
+        Split data into shifts
+            shift 1 : 06:00 to 18:00hrs
+            shift 2 : 18:00 to next day 06:00
+    """
+    # devide by lines
+    lines = get_lines(df) # get lines frmo columns special_comments
+    # obtain dataframes by every date
+    # transformation of dataframe to set colum with date as index, drop column
+    df = set_index_datetime(df) # set index date as datetime
+    # get unique dates in the index
+    # build dictionary for every line, wich dates is contained
+    lines_dates = {}
+    for line in lines:
+        df_by_day = df.resample("D").count()
+        dates = list(df_by_day.index)
+        date_aux = []
+        for date in dates:
+            date_aux.append(date.date())
+        lines_dates[line] = date_aux
+    # Show dates obtained for every line
+    for key,values in lines_dates.items():
+        print("\n",f"{key}","------")
+        for date in values:
+            print(date)
+    
+
+
+@decorators.print_header("Total by date")
+def total_by_date(df):
     """Build table for count total by date"""
     # set index date as datetime
     df = set_index_datetime(df)
@@ -130,3 +183,15 @@ def count_by_date(df):
     df_result.index.name = "Date"
 
     return df_result
+
+@decorators.print_header("Construccion de dataframe de prueba")
+def read_test_df(file_name : str) -> pd.DataFrame:
+    """read dataframe for testing data for cross reference"""
+
+    file_path = Path(file_name)
+    if file_path.exists():
+        df = pd.read_csv(file_path)
+        print(df.info())
+        return df
+    else:
+        print(f"-> '{file_path}' path no existe")
